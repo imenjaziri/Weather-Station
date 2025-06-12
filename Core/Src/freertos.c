@@ -22,7 +22,8 @@
 #include "task.h"
 #include "main.h"
 #include "cmsis_os.h"
-
+#include "gps.h"
+#include "semphr.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 /* USER CODE END Includes */
@@ -44,18 +45,20 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
-
+SemaphoreHandle_t SimpleMutex;
 /* USER CODE END Variables */
 osThreadId defaultTaskHandle;
 osThreadId IHM_TaskHandle;
+osThreadId GPS_TaskHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
 
 /* USER CODE END FunctionPrototypes */
-
+extern void SendUart(uint8_t *str);
 void StartDefaultTask(void const * argument);
 void Start_IHM_Task(void const * argument);
+void Start_GPS_Task(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -86,7 +89,12 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */
-  /* add mutexes, ... */
+	/*SimpleMutex = xSemaphoreCreateMutex();
+
+	if (SimpleMutex != NULL)
+	{
+	 HAL_UART_Transmit(&huart2, "Mutex Created\n\n", 15, 1000);
+	}*/
   /* USER CODE END RTOS_MUTEX */
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
@@ -109,6 +117,10 @@ void MX_FREERTOS_Init(void) {
   /* definition and creation of IHM_Task */
   osThreadDef(IHM_Task, Start_IHM_Task, osPriorityIdle, 0, 1024);
   IHM_TaskHandle = osThreadCreate(osThread(IHM_Task), NULL);
+
+  /* definition and creation of GPS_Task */
+  osThreadDef(GPS_Task, Start_GPS_Task, osPriorityIdle, 0, 1024);
+  GPS_TaskHandle = osThreadCreate(osThread(GPS_Task), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -154,7 +166,31 @@ __weak void Start_IHM_Task(void const * argument)
   /* USER CODE END Start_IHM_Task */
 }
 
+/* USER CODE BEGIN Header_Start_GPS_Task */
+/**
+* @brief Function implementing the GPS_Task thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_Start_GPS_Task */
+__weak void Start_GPS_Task(void const * argument)
+{
+  /* USER CODE BEGIN Start_GPS_Task */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END Start_GPS_Task */
+}
+
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
-
+/*void SendUart(uint8_t *str)
+{
+xSemaphoreTake(SimpleMutex,portMAX_DELAY);
+HAL_Delay(2000);
+HAL_UART_Transmit(&huart2,str, strlen((char*)str), 100);
+xSemaphoreGive(SimpleMutex);
+}*/
 /* USER CODE END Application */

@@ -1,4 +1,5 @@
 #include "ihm.h"
+
 #define RX_BUFFER_SIZE 64
 #define MAX_SF 12
 #define MIN_SF 6
@@ -28,22 +29,32 @@
 #define MAX_GPS_ALT   12000.0f
 #define MIN_GPS_LAT -90.0f
 #define MAX_GPS_LAT  90.0f
+uint8_t date;
+uint8_t month;
+uint8_t year;
+uint8_t hour;
+uint8_t minutes;
+uint8_t seconds;
+uint8_t day;
 uint8_t rxBuffer[RX_BUFFER_SIZE];
 uint8_t new_buff[RX_BUFFER_SIZE];
 uint8_t rxByte;
 uint8_t rxIndex = 0;
 uint8_t rx_flag;
-uint8_t txBuffer[128];
+uint8_t txBuffer[200];
 uint8_t MessageBufferFlag=0;
 uint8_t xBytesSent ;
 uint8_t received_data[64];
-MessageBufferHandle_t  MessageBufferHandle=NULL;
-const size_t xMessageBufferSizeBytes = 100;
+MessageBufferHandle_t  IhmMessageBufferHandle=NULL;
+const size_t xIhmMessageBufferSizeBytes = 100;
 BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 uint8_t processing =0;
 volatile uint8_t retour=0;
-typedef void (*cmdHandler)(char *arg); // parameters: token[2], token[3] (TYPE OF VALUE+VAL), number of arguments (tokens)
 char *tokens[10];
+Menu currentMenu=Main_Menu;
+Lora LoraValues = {7, 5, 6};
+GPS_Data MyGps={545.4,3723.2475,12365500};
+SENSORS SensorsValues={27.5f,26.0f,0.5f,0.6f,10.0f,50.5f,1.4f,0.7f,5.8f,7.2f};
 uint8_t Sf_New_Value;
 uint8_t cmd_buff[180];
 uint8_t Cr_New_Value;
@@ -83,49 +94,7 @@ float Old_Default_Heigh;
 float Old_Default_TimeGPS;
 float Old_Default_AltGPS;
 float Old_Default_LatGPS;
-typedef struct {
-	char* Name;
-	char* helper;
-	cmdHandler handler;
-	uint8_t MenuIndex;
-}CMD;
-typedef enum {
-	Main_Menu,
-	Lora_Menu,
-	GPS_Menu,
-	Sensors_Menu,
-	SysConfig_Menu
-}Menu;
-Menu currentMenu=Main_Menu;
-typedef struct {
-	uint8_t sf_l;
-	uint8_t cr_l ;
-	uint8_t bw_l ;
-}Lora;
-Lora LoraValues = {7, 5, 6};
-typedef struct {
-	float alt_gps;
-	float lat_gps ;
-	uint32_t time_gps ;
-}GPS;
-GPS Gps={545.4,3723.2475,12365500};
-typedef struct {
-	float AirTemp_s;
-	float SoilTemp_s ;
-	float RelativeHumidity_s ;
-	float SoilHumidity_s;
-	float AirPressure_s;
-	float WindSpeed_s;
-	float Kc;
-	float Kp;
-	float ET0;
-	float Radiation_s;
-	float ETc;
-	float ETcAdj;
 
-
-}SENSORS;
-SENSORS SensorsValues={27.5f,26.0f,0.5f,0.6f,10.0f,50.5f,1.4f,0.7f,5.8f,7.2f};
 //Useful functions for the code
 void UpperCase(char *str){
 	while (*str)
@@ -139,8 +108,8 @@ void Start_IHM_Task(void const * argument)
 {
 	/* USER CODE BEGIN Start_IHM_Task */
 	MainMenu();
-	MessageBufferHandle = xMessageBufferCreate(xMessageBufferSizeBytes);
-	if( MessageBufferHandle != NULL )
+	IhmMessageBufferHandle = xMessageBufferCreate(xIhmMessageBufferSizeBytes);
+	if( IhmMessageBufferHandle != NULL )
 	{
 	}
 	else
@@ -151,7 +120,7 @@ void Start_IHM_Task(void const * argument)
 	/* Infinite loop */
 	for(;;)
 	{
-		xMessageBufferReceive( MessageBufferHandle, received_data, sizeof(received_data), portMAX_DELAY);
+		xMessageBufferReceive( IhmMessageBufferHandle, received_data, sizeof(received_data), portMAX_DELAY);
 		memset(new_buff,0,sizeof(new_buff));
 		UpperCase((char*)received_data);
 		tokenization((char*)received_data);
@@ -166,14 +135,15 @@ void Start_IHM_Task(void const * argument)
 
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-	if (!processing)
+	  if (huart==&huart2)
+	{if (!processing)
 	{ if ((rxByte == '\r')||(rxByte=='\n'))
 	{   if (rxIndex!=0)
 	{
 		processing=1;
 		rxBuffer[rxIndex] = '\0';
 		memcpy(new_buff,rxBuffer,rxIndex);
-		xBytesSent=xMessageBufferSendFromISR(MessageBufferHandle,new_buff,strlen((char*)new_buff),&xHigherPriorityTaskWoken);
+		xBytesSent=xMessageBufferSendFromISR(IhmMessageBufferHandle,new_buff,strlen((char*)new_buff),&xHigherPriorityTaskWoken);
 		//The number of bytes actually written to the message buffer.  If the
 		// * message buffer didn't have enough free space for the message to be stored
 		// * then 0 is returned, otherwise xDataLengthBytes is returned.
@@ -211,6 +181,8 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	}
 	HAL_UART_Receive_IT(&huart2, &rxByte, 1);
 }
+}
+
 //tableau de liste des commandes
 CMD cmd_list[]={
 		{"LORA",(char*)":TO ACCESS LORA MENU WRITE LORA",LoraMenu,Main_Menu},
@@ -260,7 +232,33 @@ CMD cmd_list[]={
 void MainMenu(void) {
 	// Afficher tout le menu une seule fois
 	currentMenu=Main_Menu;
-	sprintf((char*)txBuffer,"\033[1;30;107m----------------Main Menu---------------\033[0m\n \r\n");
+	char* weekday_str[] = {
+			"Invalid",      // index 0 (not used)
+			"Monday",       // 1
+			"Tuesday",      // 2
+			"Wednesday",    // 3
+			"Thursday",     // 4
+			"Friday",       // 5
+			"Saturday",     // 6
+			"Sunday"        // 7
+	};
+	HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+	HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+	if (Reset_Flag==1)
+	{
+
+		day=sDate.WeekDay;
+		date=sDate.Date;
+		month=sDate.Month;
+		year=sDate.Year;
+		hour=sTime.Hours;
+		minutes=sTime.Minutes;
+		seconds=sTime.Seconds;
+		Reset_Flag=0;
+	}
+
+	sprintf((char*)txBuffer,"\033[1;30;107m----------------Main Menu---------------\033[0m\n \r\nDate : %s , %02d/%02d/%02d        Session opened at: %02d:%02d:%02d\r\n",
+			weekday_str[day],date,month, 2000+year,hour,minutes, seconds);
 	HAL_UART_Transmit(&huart2, txBuffer, strlen((char*)txBuffer), 100);
 	for (uint8_t l=0;l<sizeof(cmd_list)/sizeof(cmd_list[0]);l++)
 	{if (cmd_list[l].MenuIndex==Main_Menu)
@@ -268,7 +266,6 @@ void MainMenu(void) {
 	HAL_UART_Transmit(&huart2, txBuffer, strlen((char*)txBuffer), 100);
 	}
 	}
-
 	HAL_UART_Receive_IT(&huart2, &rxByte, 1);
 
 }
@@ -455,7 +452,7 @@ void SetAltGPS_f(char* arg){
 	}
 }
 void GetAltGPS_f(char* arg){
-	sprintf((char*)cmd_buff,"GPS ALTITUDE VALUE IS : %.2f \r\nGPS ALTITUDE  DEFAULT VALUE IS : %.2f\r\n TO CHANGE DEFAULT VALUE GO TO SYSCONF",AltGps_New_Value,Gps.alt_gps);
+	sprintf((char*)cmd_buff,"GPS ALTITUDE VALUE IS : %.2f \r\nGPS ALTITUDE  DEFAULT VALUE IS : %.2f\r\n TO CHANGE DEFAULT VALUE GO TO SYSCONF",AltGps_New_Value,MyGps.alt_gps);
 	HAL_UART_Transmit(&huart2,cmd_buff,strlen((char*)cmd_buff), 100);
 	memset(cmd_buff,0,sizeof(cmd_buff));
 }
@@ -479,7 +476,7 @@ void SetLatGPS_f(char* arg){
 	}
 }
 void GetLatGPS_f(char* arg){
-	sprintf((char*)cmd_buff,"GPS LATITUDE VALUE IS : %.2f \r\nGPS LATITUDE  DEFAULT VALUE IS : %.2f\r\n TO CHANGE DEFAULT VALUE GO TO SYSCONF",LatGps_New_Value,Gps.lat_gps);
+	sprintf((char*)cmd_buff,"GPS LATITUDE VALUE IS : %.2f \r\nGPS LATITUDE  DEFAULT VALUE IS : %.2f\r\n TO CHANGE DEFAULT VALUE GO TO SYSCONF",LatGps_New_Value,MyGps.lat_gps);
 	HAL_UART_Transmit(&huart2,cmd_buff,strlen((char*)cmd_buff), 100);
 	memset(cmd_buff,0,sizeof(cmd_buff));
 }
@@ -503,7 +500,7 @@ void SetTimeGPS_f(char* arg){
 	}
 }
 void GetTimeGPS_f(char* arg){
-	sprintf((char*)cmd_buff,"GPS TIME VALUE IS : %lu \r\nGPS TIME  DEFAULT VALUE IS : %lu\r\n TO CHANGE DEFAULT VALUE GO TO SYSCONF",TimeGps_New_Value,Gps.time_gps);
+	sprintf((char*)cmd_buff,"GPS TIME VALUE IS : %lu \r\nGPS TIME  DEFAULT VALUE IS : %lu\r\n TO CHANGE DEFAULT VALUE GO TO SYSCONF",TimeGps_New_Value,MyGps.time_gps);
 	HAL_UART_Transmit(&huart2,cmd_buff,strlen((char*)cmd_buff), 100);
 	memset(cmd_buff,0,sizeof(cmd_buff));
 }
@@ -761,16 +758,16 @@ void Save_f(char* arg){
 	sprintf((char*)txBuffer,"The default CR buffer is now %d\r\n",LoraValues.cr_l);
 
 	//Saving GPS Values
-	 Old_Default_AltGPS=Gps.alt_gps ;
-	sprintf((char*)cmd_buff, "The default GPS ALTITUDE is now %.2f\r\n",Gps.alt_gps);
+	Old_Default_AltGPS=MyGps.alt_gps ;
+	sprintf((char*)cmd_buff, "The default GPS ALTITUDE is now %.2f\r\n",MyGps.alt_gps);
 	HAL_UART_Transmit(&huart2, cmd_buff, strlen((char*)cmd_buff), 100);
 
-	Old_Default_LatGPS=Gps.lat_gps ;
-	sprintf((char*)cmd_buff, "The default GPS LATITUDE is now %.2f\r\n",Gps.lat_gps);
+	Old_Default_LatGPS=MyGps.lat_gps ;
+	sprintf((char*)cmd_buff, "The default GPS LATITUDE is now %.2f\r\n",MyGps.lat_gps);
 	HAL_UART_Transmit(&huart2, cmd_buff, strlen((char*)cmd_buff), 100);
 
-	Old_Default_TimeGPS=Gps.time_gps ;
-	sprintf((char*)cmd_buff, "The default GPS TIME is now %lu\r\n",Gps.time_gps);
+	Old_Default_TimeGPS=MyGps.time_gps ;
+	sprintf((char*)cmd_buff, "The default GPS TIME is now %lu\r\n",MyGps.time_gps);
 	HAL_UART_Transmit(&huart2, cmd_buff, strlen((char*)cmd_buff), 100);
 
 	//Saving Sensors Values
@@ -823,16 +820,16 @@ void Restore_f(char* arg){
 	HAL_UART_Transmit(&huart2, txBuffer, strlen((char*)txBuffer), 100);
 
 	//Restoring GPS Values
-	Gps.alt_gps = Old_Default_AltGPS;
-	sprintf((char*)cmd_buff, "GPS ALTITUDE restored to %.2f\r\n",Gps.alt_gps);
+	MyGps.alt_gps = Old_Default_AltGPS;
+	sprintf((char*)cmd_buff, "GPS ALTITUDE restored to %.2f\r\n",MyGps.alt_gps);
 	HAL_UART_Transmit(&huart2, cmd_buff, strlen((char*)cmd_buff), 100);
 
-	Gps.lat_gps = Old_Default_LatGPS;
-	sprintf((char*)cmd_buff, "GPS LATITUDE restored to %.2f\r\n",Gps.lat_gps);
+	MyGps.lat_gps = Old_Default_LatGPS;
+	sprintf((char*)cmd_buff, "GPS LATITUDE restored to %.2f\r\n",MyGps.lat_gps);
 	HAL_UART_Transmit(&huart2, cmd_buff, strlen((char*)cmd_buff), 100);
 
-	Gps.time_gps = Old_Default_TimeGPS;
-	sprintf((char*)cmd_buff, "GPS TIME restored to %lu\r\n",Gps.time_gps);
+	MyGps.time_gps = Old_Default_TimeGPS;
+	sprintf((char*)cmd_buff, "GPS TIME restored to %lu\r\n",MyGps.time_gps);
 	HAL_UART_Transmit(&huart2, cmd_buff, strlen((char*)cmd_buff), 100);
 	//Restoring Sensors Values
 

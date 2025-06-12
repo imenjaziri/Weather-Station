@@ -17,9 +17,53 @@
 #include "usart.h"
 #include "stm32l4xx_hal_uart.h"
 #include "FreeRTOS.h"
+#include "semphr.h"
 #include "message_buffer.h"
 #include "cmsis_os.h"
-extern uint8_t SF_Lora_Value;
+#include "rtc.h"
+typedef void (*cmdHandler)(char *arg); // parameters: token[2], token[3] (TYPE OF VALUE+VAL), number of arguments (tokens)
+typedef struct {
+	char* Name;
+	char* helper;
+	cmdHandler handler;
+	uint8_t MenuIndex;
+}CMD;
+typedef enum {
+	Main_Menu,
+	Lora_Menu,
+	GPS_Menu,
+	Sensors_Menu,
+	SysConfig_Menu
+}Menu;
+typedef struct {
+	uint8_t sf_l;
+	uint8_t cr_l ;
+	uint8_t bw_l ;
+}Lora;
+extern Lora LoraValues ;
+ typedef struct {
+	float alt_gps;
+	float lat_gps ;
+	uint32_t time_gps ;
+}GPS_Data;
+extern GPS_Data MyGps;
+typedef struct {
+	float AirTemp_s;
+	float SoilTemp_s ;
+	float RelativeHumidity_s ;
+	float SoilHumidity_s;
+	float AirPressure_s;
+	float WindSpeed_s;
+	float Kc;
+	float Kp;
+	float ET0;
+	float Radiation_s;
+	float ETc;
+	float ETcAdj;
+
+
+}SENSORS;
+extern SENSORS SensorsValues;
 void MainMenu(void);
 void LoraMenu(char* arg);
 void SensorsMenu(char* arg);
