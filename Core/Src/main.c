@@ -46,7 +46,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+uint8_t Reset_Flag=0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -92,8 +92,9 @@ int main(void)
   MX_GPIO_Init();
   MX_USART2_UART_Init();
   MX_RTC_Init();
+  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-
+  Reset_Flag=1;
   /* USER CODE END 2 */
 
   /* Call init function for freertos objects (in cmsis_os2.c) */
