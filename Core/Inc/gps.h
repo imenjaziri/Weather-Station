@@ -6,9 +6,9 @@
  */
 
 #define GPS_DEBUG	0
-#define	GPS_USART	&huart2
+#define	GPS_USART	&huart1
 #define GPSBUFSIZE  128       // GPS buffer size
-
+#define NMEA_BUFFER_SIZE  500
 typedef struct{
 
     // calculated values
@@ -52,4 +52,8 @@ void GPS_UART_CallBack();
 int GPS_validate(char *nmeastr);
 void GPS_parse(char *GPSstrParse);
 float GPS_nmea_to_dec(float deg_coord, char nsew);
-
+void GPS_Nmea_time();
+void GPS_Nmea_Date();
+extern uint8_t rx_data;
+extern uint8_t rx_buffer[GPSBUFSIZE];
+extern uint8_t rx_index;

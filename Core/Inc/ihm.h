@@ -44,7 +44,14 @@ extern Lora LoraValues ;
  typedef struct {
 	float alt_gps;
 	float lat_gps ;
-	uint32_t time_gps ;
+	float long_gps;
+	int hours;
+	int minutes;
+	int seconds;
+	int day;
+	int month;
+	int year;
+	int offset;
 }GPS_Data;
 extern GPS_Data MyGps;
 typedef struct {
@@ -60,8 +67,6 @@ typedef struct {
 	float Radiation_s;
 	float ETc;
 	float ETcAdj;
-
-
 }SENSORS;
 extern SENSORS SensorsValues;
 void MainMenu(void);
@@ -82,12 +87,12 @@ void GetBW_f(char* arg);
 void SetGPS_f(char* arg);
 void GetGPS_f(char* arg);
 void SaveGPS_f(char* arg);
-void SetAltGPS_f(char* arg);
 void GetAltGPS_f(char* arg);
-void SetLatGPS_f(char* arg);
 void GetLatGPS_f(char* arg);
-void SetTimeGPS_f(char* arg);
+void GetLongGPS_f(char* arg);
 void GetTimeGPS_f(char* arg);
+void SetLocalTimeOffset_f(char* arg);
+void GetLocalTimeOffset_f(char* arg);
 //Sensors Functions
 void GetSoilTemp_f(char* arg);
 void GetAirTemp_f(char* arg);

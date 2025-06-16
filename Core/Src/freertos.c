@@ -22,8 +22,7 @@
 #include "task.h"
 #include "main.h"
 #include "cmsis_os.h"
-#include "gps.h"
-#include "semphr.h"
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 /* USER CODE END Includes */
@@ -55,7 +54,7 @@ osThreadId GPS_TaskHandle;
 /* USER CODE BEGIN FunctionPrototypes */
 
 /* USER CODE END FunctionPrototypes */
-extern void SendUart(uint8_t *str);
+
 void StartDefaultTask(void const * argument);
 void Start_IHM_Task(void const * argument);
 void Start_GPS_Task(void const * argument);

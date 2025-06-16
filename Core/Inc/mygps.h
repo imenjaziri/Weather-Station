@@ -8,7 +8,6 @@
 #ifndef MYGPS_H_
 #define MYGPS_H_
 #include "ihm.h"
-#include "dma.h"
 #include "gps.h"
 void Sentence_parse(char* str);
 
