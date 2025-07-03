@@ -9,7 +9,8 @@
 #define MYGPS_H_
 #include "ihm.h"
 #include "gps.h"
+#include "rtc.h"
 void Sentence_parse(char* str);
-
+void RTC_SetFromGPS(GPS_Data *gps_rtc);
 
 #endif /* MYGPS_H_ */

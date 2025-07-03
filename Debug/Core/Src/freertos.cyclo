@@ -1,5 +1,6 @@
-../Core/Src/freertos.c:71:6:vApplicationGetIdleTaskMemory	1
-../Core/Src/freertos.c:85:6:MX_FREERTOS_Init	1
-../Core/Src/freertos.c:137:6:StartDefaultTask	1
-../Core/Src/freertos.c:156:13:Start_IHM_Task	1
-../Core/Src/freertos.c:175:13:Start_GPS_Task	1
+../Core/Src/freertos.c:73:6:vApplicationGetIdleTaskMemory	1
+../Core/Src/freertos.c:87:6:MX_FREERTOS_Init	1
+../Core/Src/freertos.c:143:6:StartDefaultTask	1
+../Core/Src/freertos.c:162:13:Start_IHM_Task	1
+../Core/Src/freertos.c:181:13:Start_GPS_Task	1
+../Core/Src/freertos.c:199:13:Start_SatellitePrediction_Task	1

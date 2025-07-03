@@ -39,6 +39,7 @@ extern RTC_HandleTypeDef hrtc;
 extern RTC_TimeTypeDef sTime;
 extern RTC_DateTypeDef sDate ;
 extern RTC_AlarmTypeDef sAlarm;
+
 /* USER CODE END Private defines */
 
 void MX_RTC_Init(void);

@@ -19,7 +19,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "rtc.h"
-#include "mygps.h"
+
 /* USER CODE BEGIN 0 */
   RTC_TimeTypeDef sTime = {0};
   RTC_DateTypeDef sDate = {0};
@@ -65,19 +65,19 @@ void MX_RTC_Init(void)
 
   /** Initialize RTC and set the Time and Date
   */
-  sTime.Hours = MyGps.hours;
-  sTime.Minutes = MyGps.minutes;
-  sTime.Seconds = MyGps.seconds;
+  sTime.Hours = 16;
+  sTime.Minutes = 27;
+  sTime.Seconds = 30;
   sTime.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
   sTime.StoreOperation = RTC_STOREOPERATION_RESET;
   if (HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN) != HAL_OK)
   {
     Error_Handler();
   }
-  sDate.WeekDay = RTC_WEEKDAY_MONDAY;
-  sDate.Month = MyGps.month;
-  sDate.Date = MyGps.day;
-  sDate.Year = MyGps.year;
+  sDate.WeekDay = RTC_WEEKDAY_TUESDAY;
+  sDate.Month = RTC_MONTH_JUNE;
+  sDate.Date = 3;
+  sDate.Year = 25;
 
   if (HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN) != HAL_OK)
   {

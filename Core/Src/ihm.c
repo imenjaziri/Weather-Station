@@ -1,5 +1,6 @@
 #include "ihm.h"
 #include "gps.h"
+
 #define RX_BUFFER_SIZE 64
 #define MAX_SF 12
 #define MIN_SF 6
@@ -858,6 +859,5 @@ void Restore_f(char* arg){
 	HAL_UART_Transmit(&huart2, cmd_buff, strlen((char*)cmd_buff), 100);
 
 }
-
 
 

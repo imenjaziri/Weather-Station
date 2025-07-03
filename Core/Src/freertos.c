@@ -49,6 +49,7 @@ SemaphoreHandle_t SimpleMutex;
 osThreadId defaultTaskHandle;
 osThreadId IHM_TaskHandle;
 osThreadId GPS_TaskHandle;
+osThreadId SatellitePredicHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -58,6 +59,7 @@ osThreadId GPS_TaskHandle;
 void StartDefaultTask(void const * argument);
 void Start_IHM_Task(void const * argument);
 void Start_GPS_Task(void const * argument);
+void Start_SatellitePrediction_Task(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -121,6 +123,10 @@ void MX_FREERTOS_Init(void) {
   osThreadDef(GPS_Task, Start_GPS_Task, osPriorityIdle, 0, 1024);
   GPS_TaskHandle = osThreadCreate(osThread(GPS_Task), NULL);
 
+  /* definition and creation of SatellitePredic */
+  osThreadDef(SatellitePredic, Start_SatellitePrediction_Task, osPriorityIdle, 0, 1024);
+  SatellitePredicHandle = osThreadCreate(osThread(SatellitePredic), NULL);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -181,6 +187,24 @@ __weak void Start_GPS_Task(void const * argument)
     osDelay(1);
   }
   /* USER CODE END Start_GPS_Task */
+}
+
+/* USER CODE BEGIN Header_Start_SatellitePrediction_Task */
+/**
+* @brief Function implementing the SatellitePredic thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_Start_SatellitePrediction_Task */
+__weak void Start_SatellitePrediction_Task(void const * argument)
+{
+  /* USER CODE BEGIN Start_SatellitePrediction_Task */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END Start_SatellitePrediction_Task */
 }
 
 /* Private application code --------------------------------------------------*/

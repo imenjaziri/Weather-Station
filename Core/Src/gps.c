@@ -161,4 +161,7 @@ void GPS_Nmea_Date(){
 		MyGps.day=days;
 		MyGps.month=mon;
 		MyGps.year=yr;
+		sDate.Date=days;
+		sDate.Month=mon;
+		sDate.Year=yr;
 }
