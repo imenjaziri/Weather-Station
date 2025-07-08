@@ -49,7 +49,8 @@ Core/Src/ihm.o: ../Core/Src/ihm.c ../Core/Inc/ihm.h ../Core/Inc/main.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/queue.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/event_groups.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/timers.h \
- ../Core/Inc/rtc.h ../Core/Inc/gps.h
+ ../Core/Inc/rtc.h ../Core/Inc/gps.h ../Core/Inc/SatellitePredict.h \
+ ../Core/Inc/ihm.h ../Core/Inc/predict/predict.h
 ../Core/Inc/ihm.h:
 ../Core/Inc/main.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal.h:
@@ -104,3 +105,6 @@ Core/Src/ihm.o: ../Core/Src/ihm.c ../Core/Inc/ihm.h ../Core/Inc/main.h \
 ../Middlewares/Third_Party/FreeRTOS/Source/include/timers.h:
 ../Core/Inc/rtc.h:
 ../Core/Inc/gps.h:
+../Core/Inc/SatellitePredict.h:
+../Core/Inc/ihm.h:
+../Core/Inc/predict/predict.h:

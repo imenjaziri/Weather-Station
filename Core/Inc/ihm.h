@@ -33,6 +33,7 @@ typedef enum {
 	Lora_Menu,
 	GPS_Menu,
 	Sensors_Menu,
+	Prediction_Menu,
 	SysConfig_Menu
 }Menu;
 typedef struct {
@@ -93,6 +94,8 @@ void GetLongGPS_f(char* arg);
 void GetTimeGPS_f(char* arg);
 void SetLocalTimeOffset_f(char* arg);
 void GetLocalTimeOffset_f(char* arg);
+//Prediction Functions
+//void GetNextPass_f(char* arg);
 //Sensors Functions
 void GetSoilTemp_f(char* arg);
 void GetAirTemp_f(char* arg);

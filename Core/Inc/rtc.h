@@ -36,9 +36,6 @@ extern "C" {
 extern RTC_HandleTypeDef hrtc;
 
 /* USER CODE BEGIN Private defines */
-extern RTC_TimeTypeDef sTime;
-extern RTC_DateTypeDef sDate ;
-extern RTC_AlarmTypeDef sAlarm;
 
 /* USER CODE END Private defines */
 

@@ -12,5 +12,5 @@
 #include "rtc.h"
 void Sentence_parse(char* str);
 void RTC_SetFromGPS(GPS_Data *gps_rtc);
-
+void GPS_GetFromRTC(GPS_Data *gps_rtc);
 #endif /* MYGPS_H_ */

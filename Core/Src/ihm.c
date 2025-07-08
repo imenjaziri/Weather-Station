@@ -1,6 +1,6 @@
 #include "ihm.h"
 #include "gps.h"
-
+#include "SatellitePredict.h"
 #define RX_BUFFER_SIZE 64
 #define MAX_SF 12
 #define MIN_SF 6
@@ -100,7 +100,7 @@ float Old_Default_AltGPS;
 float Old_Default_LatGPS;
 int Local_Time_Hour,Local_Time_Minutes,Local_Time_Seconds;
 int TimeOffset_New_Value;
-
+#ifndef IHM
 //Useful functions for the code
 void UpperCase(char *str){
 	while (*str)
@@ -227,13 +227,14 @@ CMD cmd_list[]={
 		{"SETETCADJ",(char*)":TO SET ETc(adj)=Kc*Kp*ET0 VALUE WRITE SETETCADJ\r\nNote: ETc(adj) must be < than ETc",SetETCadj_f,Sensors_Menu},
 		{"GETETCADJ",(char*)":TO GET ET0 VALUE WRITE GETET0\r\nPossible values [0,30]",GetETCadj_f,Sensors_Menu},
 		//GPS Menu Command List
-
 		{"GETALT",(char*)":TO GET ALTITUDE VALUE WRITE GETALT",GetAltGPS_f,GPS_Menu},
 		{"GETLAT",(char*)":TO GET LATITUDE VALUE WRITE GETLAT",GetLatGPS_f,GPS_Menu},
 		{"GETLONG",(char*)":TO GET LONGITUDE VALUE WRITE GETLONG",GetLongGPS_f,GPS_Menu},
 		{"GETUTC",(char*)":TO GET TIME VALUE WRITE GETUTC",GetTimeGPS_f,GPS_Menu},
 		{"SETOFFSET",(char*)":TO SET YOUR LOCAL TIME OFFSET WRITE SETOFFSET",SetLocalTimeOffset_f,GPS_Menu},
 		{"GETOFFSET",(char*)":TO GET YOUR LOCAL TIME OFFSET WRITE SETOFFSET",GetLocalTimeOffset_f,GPS_Menu},
+		// Prediction Menu
+	//	{"NEXTPASS",(char*)": TO SEE NEXT PASS DETAILS WRITE NEXTPASS",GetNextPass_f,Prediction_Menu},
 		//SystemConfig Menu
 		{"SAVE",(char*)":TO SAVE MODIFIED PARAMETERS PERMANENTLY WRITE SAVE",Save_f,SysConfig_Menu},
 		{"RESTORE",(char*)":TO RESTORE OLD PARAMETERS WRITE RESTORE",Restore_f,SysConfig_Menu},
@@ -242,33 +243,7 @@ CMD cmd_list[]={
 void MainMenu(void) {
 	// Afficher tout le menu une seule fois
 	currentMenu=Main_Menu;
-	char* weekday_str[] = {
-			"Invalid",      // index 0 (not used)
-			"Monday",       // 1
-			"Tuesday",      // 2
-			"Wednesday",    // 3
-			"Thursday",     // 4
-			"Friday",       // 5
-			"Saturday",     // 6
-			"Sunday"        // 7
-	};
-	HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
-	HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
-	if (Reset_Flag==1)
-	{
-
-		day=sDate.WeekDay;
-		date=sDate.Date;
-		month=sDate.Month;
-		year=sDate.Year;
-		hour=sTime.Hours;
-		minutes=sTime.Minutes;
-		seconds=sTime.Seconds;
-		Reset_Flag=0;
-	}
-
-	sprintf((char*)txBuffer,"\033[1;30;107m----------------Main Menu---------------\033[0m\n \r\n                          Date : %s    %d/%d/%d \r\n",
-			weekday_str[day],date,month, 2000+year);
+	sprintf((char*)txBuffer,"\033[1;30;107m----------------Main Menu---------------\033[0m\n");
 	HAL_UART_Transmit(&huart2, txBuffer, strlen((char*)txBuffer), 500);
 	for (uint8_t l=0;l<sizeof(cmd_list)/sizeof(cmd_list[0]);l++)
 	{if (cmd_list[l].MenuIndex==Main_Menu)
@@ -293,14 +268,14 @@ uint8_t cl_elements=sizeof(cmd_list)/sizeof(cmd_list[0]);
 void ParseCommand() {
 	uint8_t c=0;
 	uint8_t correspond=0;
-	uint8_t true=0;
+	uint8_t accurate=0;
 	uint8_t goback=0;
 	if (strcmp(tokens[0],"..")==0)
 	{MainMenu();
 	goback=1;}
 	while (c<cl_elements)
 	{if (strcmp(tokens[0], cmd_list[c].Name)== 0)
-	{ true=1;
+	{ accurate=1;
 	if (currentMenu==cmd_list[c].MenuIndex)
 	{cmd_list[c].handler(tokens[1]);
 	correspond=1;}
@@ -309,7 +284,7 @@ void ParseCommand() {
 	}
 	c++;
 	}
-	if (true==0 && correspond==0 && goback==0)
+	if (accurate==0 && correspond==0 && goback==0)
 		HAL_UART_Transmit(&huart2, (uint8_t*)"COMMAND ERROR\r\n",16,100);
 
 	processing=0;
@@ -509,7 +484,12 @@ void GetTimeGPS_f(char* arg){
 	HAL_UART_Transmit(&huart2,cmd_buff,strlen((char*)cmd_buff), 100);
 	memset(cmd_buff,0,sizeof(cmd_buff));
 }
+/*////////////////////////////////////////////// PREDICTION MENU\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\*/
 
+/*void GetNextPass_f(char* arg){
+
+		HAL_UART_Transmit(&huart2, (uint8_t *)buff, strlen(buff), 1000);
+}*/
 /*////////////////////////////////////////////// SENSORS MENU\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\*/
 
 void SensorsMenu(char* arg){
@@ -859,5 +839,5 @@ void Restore_f(char* arg){
 	HAL_UART_Transmit(&huart2, cmd_buff, strlen((char*)cmd_buff), 100);
 
 }
-
+#endif
 
