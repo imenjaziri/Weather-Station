@@ -12,6 +12,7 @@
 #ifndef gps
 #include "rtc.h"
 #include "mygps.h"
+#include "freertos.h"
 #define UART_RX_BUFFER_SIZE  500
 const size_t xGpsMessageBufferSizeBytes = 500;
 uint8_t UART1_RxBuffer[UART_RX_BUFFER_SIZE] = {0};
@@ -25,6 +26,11 @@ uint8_t xGpsBytesSent;
 uint8_t gps_message_buffer_flag;
 uint8_t GPS_Valid=1;
 uint8_t Assign_Values=0;
+GPS_RTC gps_to_rtc={0};
+GPS_IHM gps_to_ihm={0.0};
+// xQueueHandle GpsToIhm;
+extern QueueHandle_t GpsToIhm;
+
 void Start_GPS_Task(void const * argument)
 {
 	GpsMessageBufferHandle = xMessageBufferCreate(xGpsMessageBufferSizeBytes);
@@ -43,7 +49,9 @@ void Start_GPS_Task(void const * argument)
 		if (Assign_Values==1){
 			GPS_Nmea_time();
 			GPS_Nmea_Date();
-			GPS_GetFromRTC(&MyGps);};
+			GPS_GetFromRTC(&gps_to_rtc);};
+		xQueueSend(GpsToIhm, &gps_to_ihm,0);
+
 		osDelay(100);
 	}
 }
@@ -72,7 +80,7 @@ void Sentence_parse(char* str){
 	}
 	else GPS_Valid=0;
 }
-void GPS_GetFromRTC(GPS_Data *gps_rtc){
+void GPS_GetFromRTC(GPS_RTC *gps_rtc){
 	RTC_TimeTypeDef rtc_time;
 	RTC_DateTypeDef rtc_date;
 	HAL_RTC_GetTime(&hrtc, &rtc_time, RTC_FORMAT_BIN);
@@ -87,7 +95,7 @@ void GPS_GetFromRTC(GPS_Data *gps_rtc){
 		HAL_UART_Transmit(&huart2, (const uint8_t*)"RTC sync skipped (diff < 5 min)\r\n", strlen("RTC sync skipped (diff < 5 min)\r\n"), 1000);
 	}*/
 }
-void RTC_SetFromGPS(GPS_Data *gps_rtc)
+void RTC_SetFromGPS(GPS_RTC *gps_rtc)
 {
 
 	RTC_TimeTypeDef sTime={0};

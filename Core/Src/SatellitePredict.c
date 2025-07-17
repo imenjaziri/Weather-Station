@@ -14,7 +14,7 @@
 char buff[600];
 time_t timestamp;
 time_t first_los_utc=0;
-
+#ifdef SATELLITE
 //#ifdef SATELLITE
 void Start_SatellitePrediction_Task(void const * argument)
 {
@@ -178,4 +178,4 @@ time_t list_next_passes(predict_observer_t *obs,predict_orbital_elements_t *sat,
 
 	return first_los_utc;
 }
-
+#endif

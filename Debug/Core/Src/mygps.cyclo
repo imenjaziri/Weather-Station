@@ -1,5 +1,5 @@
-../Core/Src/mygps.c:28:6:Start_GPS_Task	3
-../Core/Src/mygps.c:50:6:GPS_UART_CallBack	4
-../Core/Src/mygps.c:68:6:Sentence_parse	2
-../Core/Src/mygps.c:75:6:GPS_GetFromRTC	2
-../Core/Src/mygps.c:90:6:RTC_SetFromGPS	3
+../Core/Src/mygps.c:34:6:Start_GPS_Task	3
+../Core/Src/mygps.c:58:6:GPS_UART_CallBack	4
+../Core/Src/mygps.c:76:6:Sentence_parse	2
+../Core/Src/mygps.c:83:6:GPS_GetFromRTC	2
+../Core/Src/mygps.c:98:6:RTC_SetFromGPS	3

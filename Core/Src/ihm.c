@@ -100,7 +100,7 @@ float Old_Default_AltGPS;
 float Old_Default_LatGPS;
 int Local_Time_Hour,Local_Time_Minutes,Local_Time_Seconds;
 int TimeOffset_New_Value;
-#ifndef IHM
+#ifdef IHMSAT
 //Useful functions for the code
 void UpperCase(char *str){
 	while (*str)

@@ -25,6 +25,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "mygps.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -44,12 +45,13 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
-SemaphoreHandle_t SimpleMutex;
+xQueueHandle GpsToIhm;
 /* USER CODE END Variables */
 osThreadId defaultTaskHandle;
 osThreadId IHM_TaskHandle;
 osThreadId GPS_TaskHandle;
 osThreadId SatellitePredicHandle;
+osThreadId Sensors_TaskHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -60,6 +62,7 @@ void StartDefaultTask(void const * argument);
 void Start_IHM_Task(void const * argument);
 void Start_GPS_Task(void const * argument);
 void Start_SatellitePrediction_Task(void const * argument);
+void Start_Sensors_Task(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -107,7 +110,7 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE END RTOS_TIMERS */
 
   /* USER CODE BEGIN RTOS_QUEUES */
-  /* add queues, ... */
+	GpsToIhm=xQueueCreate(10,sizeof(GPS_IHM));
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
@@ -126,6 +129,10 @@ void MX_FREERTOS_Init(void) {
   /* definition and creation of SatellitePredic */
   osThreadDef(SatellitePredic, Start_SatellitePrediction_Task, osPriorityIdle, 0, 1024);
   SatellitePredicHandle = osThreadCreate(osThread(SatellitePredic), NULL);
+
+  /* definition and creation of Sensors_Task */
+  osThreadDef(Sensors_Task, Start_Sensors_Task, osPriorityIdle, 0, 1024);
+  Sensors_TaskHandle = osThreadCreate(osThread(Sensors_Task), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -205,6 +212,24 @@ __weak void Start_SatellitePrediction_Task(void const * argument)
     osDelay(1);
   }
   /* USER CODE END Start_SatellitePrediction_Task */
+}
+
+/* USER CODE BEGIN Header_Start_Sensors_Task */
+/**
+* @brief Function implementing the Sensors_Task thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_Start_Sensors_Task */
+__weak void Start_Sensors_Task(void const * argument)
+{
+  /* USER CODE BEGIN Start_Sensors_Task */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END Start_Sensors_Task */
 }
 
 /* Private application code --------------------------------------------------*/
