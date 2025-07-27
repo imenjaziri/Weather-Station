@@ -22,6 +22,7 @@
 #include "adc.h"
 #include "i2c.h"
 #include "rtc.h"
+#include "tim.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -61,7 +62,8 @@ void MX_FREERTOS_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+volatile uint8_t debounce_active = 0;
+volatile uint8_t valid_press = 0;
 /* USER CODE END 0 */
 
 /**
@@ -102,6 +104,9 @@ int main(void)
   MX_ADC1_Init();
   MX_I2C2_Init();
   MX_ADC2_Init();
+  MX_TIM2_Init();
+  MX_TIM3_Init();
+  MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
   Reset_Flag=1;
   /* USER CODE END 2 */
@@ -222,7 +227,16 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
+  if (htim->Instance == TIM2)
+  	{
+  		HAL_TIM_Base_Stop_IT(&htim2);
+  		debounce_active = 0;
 
+  		if (HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_1) == GPIO_PIN_SET)
+  		{
+  			valid_press = 1;
+  		}
+  	}
   /* USER CODE END Callback 1 */
 }
 
@@ -240,8 +254,7 @@ void Error_Handler(void)
   }
   /* USER CODE END Error_Handler_Debug */
 }
-
-#ifdef  USE_FULL_ASSERT
+#ifdef USE_FULL_ASSERT
 /**
   * @brief  Reports the name of the source file and the source line number
   *         where the assert_param error has occurred.

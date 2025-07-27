@@ -1,7 +1,9 @@
-../Core/Src/freertos.c:76:6:vApplicationGetIdleTaskMemory	1
-../Core/Src/freertos.c:90:6:MX_FREERTOS_Init	1
-../Core/Src/freertos.c:150:6:StartDefaultTask	1
-../Core/Src/freertos.c:169:13:Start_IHM_Task	1
-../Core/Src/freertos.c:188:13:Start_GPS_Task	1
-../Core/Src/freertos.c:206:13:Start_SatellitePrediction_Task	1
-../Core/Src/freertos.c:224:13:Start_Sensors_Task	1
+../Core/Src/freertos.c:81:6:vApplicationGetIdleTaskMemory	1
+../Core/Src/freertos.c:94:6:vApplicationGetTimerTaskMemory	1
+../Core/Src/freertos.c:108:6:MX_FREERTOS_Init	1
+../Core/Src/freertos.c:173:6:StartDefaultTask	1
+../Core/Src/freertos.c:192:13:Start_IHM_Task	1
+../Core/Src/freertos.c:211:13:Start_GPS_Task	1
+../Core/Src/freertos.c:229:13:Start_SatellitePrediction_Task	1
+../Core/Src/freertos.c:247:13:Start_Sensors_Task	1
+../Core/Src/freertos.c:259:13:FanTimerCallback	1

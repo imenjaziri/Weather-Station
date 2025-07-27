@@ -16,6 +16,7 @@
 #include "cmsis_os.h"
 #include <string.h>
 #include "math.h"
+#include "tim.h"
 #define ADC_VREF 3.3f
 #define ADC_RES 4095.0f
 #define STABILITY_THRESHOLD 0.05f
@@ -29,4 +30,6 @@ typedef struct {
     float light_voltage;
 } SensorReadings_t;
 int GetStableADCReading_Polling(SensorReadings_t *result);
+void SetFanSpeedPercent(uint8_t percent);
+
 #endif /* INC_SENSORS_H_ */

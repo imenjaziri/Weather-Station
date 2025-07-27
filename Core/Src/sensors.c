@@ -5,56 +5,102 @@
  *      Author: ThinkPad
  */
 #include "sensors.h"
-volatile uint32_t last_press_time = 0;
-uint8_t counter = 0;
-uint8_t precipitation_flag=0;
+extern osTimerId FanTimerHandle;
 extern osThreadId Sensors_TaskHandle;
-#define SIGNAL_RAIN_DETECTED  (1 << 0)
+volatile uint32_t last_press_time = 0;
+extern volatile uint8_t debounce_active ;
+extern volatile uint8_t valid_press;
+volatile uint8_t counter = 0;
+volatile float measured_rpm = 0;
+volatile uint32_t last_capture = 0;
+const uint8_t duty_cycles[] = {2,10,50,75, 100};
+uint8_t duty_index = 0;
 
+void FanTimerCallback(void const *arg) {
+    // 1. Appliquer le duty cycle actuel
+    uint8_t duty = duty_cycles[duty_index];
+    SetFanSpeedPercent(duty);
+
+    // 2. Afficher le duty et le RPM
+    char msg[100];
+    snprintf(msg, sizeof(msg), "⏱️ Duty: %d%% | RPM: %.2f\r\n", duty, measured_rpm);
+    HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 100);
+
+    // 3. Prochaine valeur
+    duty_index = (duty_index + 1) % (sizeof(duty_cycles) / sizeof(duty_cycles[0]));
+}
 void Start_Sensors_Task(void const * argument) {
 	/*for (uint8_t addr = 1; addr < 127; addr++) {
 		if (HAL_I2C_IsDeviceReady(&hi2c2, addr << 1, 2, 10) == HAL_OK) {
 			char msg[64];
 			snprintf(msg, sizeof(msg), "I2C device found at 0x%02X\r\n", addr);
-			HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+			HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 1000);
 		}
+	}*/
+/*	SensorReadings_t myData;
+	if (GetStableADCReading_Polling(&myData)) {
+		float Vsoil = myData.soil_voltage;
+		float Vlight = myData.light_voltage;
+
+		float humidity_percent = (1.0f - Vsoil / 3.3f) * 100.0f;
+		float lux = Vlight * 200.0f;   // Vlight en V -> lux
+		float rs = (3.3f * 10000.0f / Vlight) - 10000.0f;
+
+		char msg[128];
+		snprintf(msg, sizeof(msg),
+				"✅ Humidité: %.1f%% | Lux: %.0f lx | Rs: %.0fΩ\r\n",
+				humidity_percent, lux, rs);
+		HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 1000);
 	}
-	SensorReadings_t myData;
-			if (GetStableADCReading_Polling(&myData)) {
-				float Vsoil = myData.soil_voltage;
-				float Vlight = myData.light_voltage;
+	float T = 0, RH = 0;
+	if (sht40_read_temperature_humidity(&T, &RH) == HAL_OK) {
+		char buf[64];
+		snprintf(buf, sizeof(buf), "Temp: %.2f °C, RH: %.2f %%\r\n", T, RH);
+		HAL_UART_Transmit(&huart2, (uint8_t*)buf, strlen(buf), 1000);
+	} else {
+		HAL_UART_Transmit(&huart2, (uint8_t*)"Erreur capteur SHT40\r\n", 23, 1000);
+	}
+	*/
+	  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
 
-				float humidity_percent = (1.0f - Vsoil / 3.3f) * 100.0f;
-				float lux = Vlight * 200.0f;   // Vlight en V -> lux
-				float rs = (3.3f * 10000.0f / Vlight) - 10000.0f;
+	    // 2. Démarrer la capture TACH avec interruption
+	    HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_1);
+	    osTimerStart(FanTimerHandle, 20000);  // 30 sec
 
-				char msg[128];
-				snprintf(msg, sizeof(msg),
-						"✅ Humidité: %.1f%% | Lux: %.0f lx | Rs: %.0fΩ\r\n",
-						humidity_percent, lux, rs);
-				HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
-			}		float T = 0, RH = 0;
-			if (sht40_read_temperature_humidity(&T, &RH) == HAL_OK) {
-				char buf[64];
-				snprintf(buf, sizeof(buf), "Temp: %.2f °C, RH: %.2f %%\r\n", T, RH);
-				HAL_UART_Transmit(&huart2, (uint8_t*)buf, strlen(buf), portMAX_DELAY);
-			} else {
-				HAL_UART_Transmit(&huart2, (uint8_t*)"Erreur capteur SHT40\r\n", 23, HAL_MAX_DELAY);
-			}*/
 	for (;;) {
-		osEvent evt = osSignalWait(SIGNAL_RAIN_DETECTED, osWaitForever);
-		        if (evt.status == osEventSignal) {
-		            HAL_UART_Transmit(&huart2, (uint8_t*)"🌧️ Précipitation détectée!\r\n", 30, HAL_MAX_DELAY);
-		        }
-		        /*if (precipitation_flag) {
-		    HAL_UART_Transmit(&huart2, (uint8_t*)" Précipitation détectée!\r\n", strlen(" Précipitation détectée!\r\n"), 1000);
-		    precipitation_flag = 0;
+		/*if (valid_press){
+			counter++;
+			valid_press=0;
+			if (counter>=10)
+			{
+				HAL_UART_Transmit(&huart2, (uint8_t*)"🌧️ Précipitation détectée!\r\n", strlen("🌧️ Précipitation détectée!\r\n"), 5000);
+				counter = 0;
+
+			}
+			char buffer[50];
+			snprintf(buffer, sizeof(buffer), "Counter = %d\r\n", counter);
+			HAL_UART_Transmit(&huart2, (uint8_t*)buffer, strlen(buffer), 100);
 		}*/
-		osDelay(2000);
+
+		osDelay(500);
 	}
 }
 
+void SetFanSpeedPercent(uint8_t percent) {
+    uint32_t pulse = (percent * (__HAL_TIM_GET_AUTORELOAD(&htim3) + 1)) / 100;
+    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, pulse);
+}
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
+    if (htim->Instance == TIM4) {
+        uint32_t now = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
+        uint32_t delta = (now >= last_capture) ? now - last_capture : (0xFFFF - last_capture + now);
+        last_capture = now;
 
+        if (delta > 0) {
+            measured_rpm = 60.0f * 1e6f / (delta * 2); // 2 impulsions par tour
+        }
+    }
+}
 int GetStableADCReading_Polling(SensorReadings_t *result) {
 	float last_soil = -1, last_light = -1;
 	float current_soil, current_light;
@@ -95,19 +141,11 @@ int GetStableADCReading_Polling(SensorReadings_t *result) {
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-	if(GPIO_Pin==GPIO_PIN_1)
-	{
-		uint32_t now = HAL_GetTick();
-		if (now - last_press_time > 200) {
-			last_press_time = now;
-			counter++;
-		}
-		if (counter >= 2) {
-			precipitation_flag = 1;
-			counter = 0;
-		}
-        osSignalSet(Sensors_TaskHandle, SIGNAL_RAIN_DETECTED);
-
+	if(GPIO_Pin==GPIO_PIN_1 && debounce_active == 0)
+	{   debounce_active=1;
+	__HAL_TIM_SET_COUNTER(&htim2, 0);
+	HAL_TIM_Base_Start_IT(&htim2);
 	}
 
 }
+
