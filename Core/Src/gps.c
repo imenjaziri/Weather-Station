@@ -41,7 +41,10 @@ uint8_t rx_index = 0;
 int hr=0,min=0,days=0,mon=0,yr=0;
 int daychange = 0;
 GPS_t GPS;
-
+char buffs[200];
+int test_year=0;
+int test_month=0;
+int test_day=0;
 void GPS_Init()
 {
 	HAL_UART_Receive_IT(GPS_USART, &rx_data, 1);
@@ -85,7 +88,6 @@ int GPS_validate(char *nmeastr){
 	return((checkcalcstr[0] == check[0])
 			&& (checkcalcstr[1] == check[1])) ? 1 : 0 ;
 }
-
 void GPS_parse(char *GPSstrParse){
 	if(!strncmp(GPSstrParse, "$GPGGA", 6)){
 		if (sscanf(GPSstrParse, "$GPGGA,%f,%f,%c,%f,%c,%d,%d,%f,%f,%c", &GPS.utc_time, &GPS.nmea_latitude, &GPS.ns, &GPS.nmea_longitude, &GPS.ew, &GPS.lock, &GPS.satelites, &GPS.hdop, &GPS.msl_altitude, &GPS.msl_units) >= 1){
@@ -94,11 +96,55 @@ void GPS_parse(char *GPSstrParse){
 			return;
 		}
 	}
-	else if (!strncmp(GPSstrParse, "$GPRMC", 6)){
-		if(sscanf(GPSstrParse, "$GPRMC,%f,%f,%c,%f,%c,%f,%f,%d", &GPS.utc_time, &GPS.nmea_latitude, &GPS.ns, &GPS.nmea_longitude, &GPS.ew, &GPS.speed_k, &GPS.course_d, &GPS.date) >= 1)
-			return;
+	else if (!strncmp(GPSstrParse, "$GPRMC", 6)) {
+		char *tokens[20];
+		int i = 0;
+		char tempStr[100];
+		// Copie sécurisée pour strtok
+		strncpy(tempStr, GPSstrParse, sizeof(tempStr)-1);
+		tempStr[sizeof(tempStr)-1] = '\0';
+
+		// Extraction des tokens (y compris vides)
+		char *p = tempStr;
+		while(i < 20) {
+		    tokens[i++] = p;
+		    p = strchr(p, ',');
+		    if(p) {
+		        *p = '\0';
+		        p++;
+		    } else {
+		        break;
+		    }
+		}
+
+		// Debug affichage des tokens
+	/*	for(int j = 0; j < i; j++){
+		    snprintf(buffs, sizeof(buffs), "Token[%d]: %s\n", j, tokens[j]);
+		    HAL_UART_Transmit(&huart2, (uint8_t*)buffs, strlen(buffs), HAL_MAX_DELAY);
+		}*/
+
+		// Extraction correcte de la date (token numéro 9)
+		if (i > 9 && strlen(tokens[9]) == 6) {
+		    GPS.date = atoi(tokens[9]);
+		    days = GPS.date / 10000;
+		    mon = (GPS.date / 100) % 100;
+		    yr = GPS.date % 100;
+
+		    MyGps.day = days;
+		    MyGps.month = mon;
+		    MyGps.year = yr;
+
+		  /*  snprintf(buffs, sizeof(buffs), "Parsed GPS Date token: %02d-%02d-%02d\n", days, mon, yr);
+		    HAL_UART_Transmit(&huart2, (uint8_t*)buffs, strlen(buffs), HAL_MAX_DELAY);
+		} else {
+		    snprintf(buffs, sizeof(buffs), "Date introuvable ou incorrecte.\n");
+		    HAL_UART_Transmit(&huart2, (uint8_t*)buffs, strlen(buffs), HAL_MAX_DELAY);
+		}*/
+
 
 	}
+	}
+
 	else if (!strncmp(GPSstrParse, "$GPGLL", 6)){
 		if(sscanf(GPSstrParse, "$GPGLL,%f,%c,%f,%c,%f,%c", &GPS.nmea_latitude, &GPS.ns, &GPS.nmea_longitude, &GPS.ew, &GPS.utc_time, &GPS.gll_status) >= 1)
 			return;
@@ -110,8 +156,9 @@ void GPS_parse(char *GPSstrParse){
 	MyGps.alt_gps=GPS.msl_altitude;
 	MyGps.lat_gps=GPS.dec_latitude;
 	MyGps.long_gps=GPS.dec_longitude;
+	//sprintf(buffs, "Raw GPS altitude from NMEA: %.2f m\r\n", GPS.msl_altitude);
+	//HAL_UART_Transmit(&huart2,(uint8_t*)buffs, strlen(buffs), HAL_MAX_DELAY);
 }
-
 float GPS_nmea_to_dec(float deg_coord, char nsew) {
 	int degree = (int)(deg_coord/100);
 	float minutes = deg_coord - degree*100;
@@ -151,14 +198,4 @@ void GPS_Nmea_time(){
 	MyGps.seconds = time_int%100;
 
 }
-void GPS_Nmea_Date(){
-	// Date in the format 280222
-		days = GPS.date/10000;
-		mon = (GPS.date/100)%100;
-		yr = GPS.date%100;
 
-		days = days+daychange;
-		MyGps.day=days;
-		MyGps.month=mon;
-		MyGps.year=yr;
-}

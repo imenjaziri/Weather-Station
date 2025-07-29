@@ -14,13 +14,19 @@
 char buff[600];
 time_t timestamp;
 time_t first_los_utc=0;
-#ifdef SATELLITE
+extern volatile uint8_t gps_rtc_updated;
+
 //#ifdef SATELLITE
 void Start_SatellitePrediction_Task(void const * argument)
-{
-	/* USER CODE BEGIN Start_SatellitePrediction_Task */
-	const char *tle_line_1 = "1 25544U 98067A   25189.21335687  .00007259  00000-0  13303-3 0  9996";
-	const char *tle_line_2 = "2 25544  51.6336 202.8559 0002499 346.6817  13.4106 15.50431524518421";
+{while (!gps_rtc_updated) {
+	osDelay(100);
+	}
+while ((fabs(MyGps.lat_gps) < 0.001) || (fabs(MyGps.long_gps) < 0.001) || (MyGps.alt_gps < 1.0)) {
+   HAL_UART_Transmit(&huart2, (uint8_t*)"Waiting for valid GPS coordinates...\r\n", 38, HAL_MAX_DELAY);
+   osDelay(1000);
+ }
+	const char *tle_line_1 = "1 25544U 98067A   25210.88923082  .00012694  00000-0  22837-3 0  9997";
+	const char *tle_line_2 = "2 25544  51.6360  95.4190 0002167 129.1276 319.5356 15.50207453521782";
 
 	// Create orbit object
 	predict_orbital_elements_t *iss = predict_parse_tle(tle_line_1, tle_line_2);
@@ -30,8 +36,10 @@ void Start_SatellitePrediction_Task(void const * argument)
 	}
 
 	// Create observer object
-	//predict_observer_t *obs = predict_create_observer("My Ground Station", MyGps.lat_gps*M_PI/180.0, MyGps.long_gps*M_PI/180.0, MyGps.alt_gps);
-	predict_observer_t *obs = predict_create_observer("My Ground Station", 36.84*M_PI/180.0, 10.9*M_PI/180.0, 60.3);
+	predict_observer_t *obs = predict_create_observer("My Ground Station", MyGps.lat_gps*M_PI/180.0, MyGps.long_gps*M_PI/180.0, MyGps.alt_gps);
+	sprintf(buff,"MyPos: lat=%f, lon=%f, alt=%f\n", MyGps.lat_gps*180.0/M_PI, MyGps.long_gps*180.0/M_PI,MyGps.alt_gps);
+		HAL_UART_Transmit(&huart2,(const uint8_t *)buff, strlen(buff),100);
+	//predict_observer_t *obs = predict_create_observer("My Ground Station", 36.84*M_PI/180.0, 10.9*M_PI/180.0, 60.3);
 	if (!obs) {
 		HAL_UART_Transmit(&huart2,(const uint8_t *)"Failed to initialize observer!", strlen("Failed to initialize observer!"),100);
 	}
@@ -51,7 +59,11 @@ void Start_SatellitePrediction_Task(void const * argument)
 	list_next_passes(obs, iss, 10, julian_time);
 
 	for(;;)
-	{
+	{ while (!gps_rtc_updated) {
+	    osDelay(100);  // Wait for GPS to update RTC
+	}
+	sprintf(buff,"MyPos: lat=%f, lon=%f, alt=%f\n", MyGps.lat_gps, MyGps.long_gps,MyGps.alt_gps);
+		HAL_UART_Transmit(&huart2,(const uint8_t *)buff, strlen(buff),100);
 		time_t now=rtc_to_time_t();
 		if (now>first_los_utc)
 		{
@@ -60,7 +72,7 @@ void Start_SatellitePrediction_Task(void const * argument)
 		}
 
 		// Add if actual timestamp is less than the last pass then execute again  list next passes
-		osDelay(10000);
+		osDelay(5000);
 
 		/* USER CODE END Start_SatellitePrediction_Task */
 	}
@@ -81,7 +93,10 @@ time_t rtc_to_time_t()
 	timeinfo.tm_mon  = sDate.Month - 1;
 	timeinfo.tm_mday = sDate.Date;
 	timeinfo.tm_isdst = 0;
-
+		snprintf(buff, sizeof(buff), "Prediction based on RTC: %04d-%02d-%02d %02d:%02d:%02d UTC\r\n",
+		         sDate.Year+2000, sDate.Month, sDate.Date,
+				 sTime.Hours, sTime.Minutes, sTime.Seconds );
+		HAL_UART_Transmit(&huart2,(uint8_t*)buff, strlen(buff), HAL_MAX_DELAY);
 	// 3) Get a “local” time_t
 	raw = mktime(&timeinfo);
 	raw -= ((MyGps.offset/100) * 3600)+((MyGps.offset%100)*60);
@@ -178,4 +193,4 @@ time_t list_next_passes(predict_observer_t *obs,predict_orbital_elements_t *sat,
 
 	return first_los_utc;
 }
-#endif
+//#endif

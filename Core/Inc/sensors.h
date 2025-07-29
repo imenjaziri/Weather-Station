@@ -30,6 +30,6 @@ typedef struct {
     float light_voltage;
 } SensorReadings_t;
 int GetStableADCReading_Polling(SensorReadings_t *result);
-void SetFanSpeedPercent(uint8_t percent);
+void Encoder_Update_Speed();
 
 #endif /* INC_SENSORS_H_ */

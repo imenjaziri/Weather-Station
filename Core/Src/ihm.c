@@ -32,6 +32,8 @@
 #define MAX_GPS_LAT  90.0f
 #define MIN_OFFSET -12
 #define MAX_OFFSET 12
+extern osThreadId IHM_TaskHandle;
+
 uint8_t date;
 uint8_t month;
 uint8_t year;
@@ -102,6 +104,7 @@ int Local_Time_Hour,Local_Time_Minutes,Local_Time_Seconds;
 int TimeOffset_New_Value;
 #ifdef IHMSAT
 //Useful functions for the code
+void PrintIhmFreeStackWords(void);
 void UpperCase(char *str){
 	while (*str)
 	{
@@ -109,10 +112,19 @@ void UpperCase(char *str){
 		str++;
 	}
 }
+void PrintIhmFreeStackWords(void)
+{
+    UBaseType_t freeWords = uxTaskGetStackHighWaterMark(IHM_TaskHandle);
 
+    char buf[50];
+    int len = snprintf(buf, sizeof(buf), "IHM Task free stack words: %lu\r\n", (unsigned long)freeWords);
+
+    HAL_UART_Transmit(&huart2, (uint8_t*)buf, len, HAL_MAX_DELAY);
+}
 void Start_IHM_Task(void const * argument)
 {
 	/* USER CODE BEGIN Start_IHM_Task */
+	PrintIhmFreeStackWords();
 	MainMenu();
 	IhmMessageBufferHandle = xMessageBufferCreate(xIhmMessageBufferSizeBytes);
 	if( IhmMessageBufferHandle != NULL )
@@ -840,4 +852,3 @@ void Restore_f(char* arg){
 
 }
 #endif
-

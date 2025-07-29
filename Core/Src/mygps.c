@@ -9,7 +9,8 @@
  *  Created on: Jun 4, 2025
  *      Author: ThinkPad
  */
-#ifndef gps
+//#ifdef GPS
+
 #include "rtc.h"
 #include "mygps.h"
 #include "freertos.h"
@@ -30,6 +31,8 @@ GPS_RTC gps_to_rtc={0};
 GPS_IHM gps_to_ihm={0.0};
 // xQueueHandle GpsToIhm;
 extern QueueHandle_t GpsToIhm;
+volatile uint8_t gps_rtc_updated = 0;
+char buffx[300];
 
 void Start_GPS_Task(void const * argument)
 {
@@ -48,11 +51,19 @@ void Start_GPS_Task(void const * argument)
 		Sentence_parse((char*)received_nmea);
 		if (Assign_Values==1){
 			GPS_Nmea_time();
-			GPS_Nmea_Date();
+			gps_to_rtc.hours = MyGps.hours;
+			gps_to_rtc.minutes = MyGps.minutes;
+			gps_to_rtc.seconds = MyGps.seconds;
+			gps_to_rtc.day = MyGps.day;
+			gps_to_rtc.month = MyGps.month;
+			gps_to_rtc.year = MyGps.year;
+		/*	snprintf(buffx, sizeof(buffx), "Parsed GPS Time: %02d:%02d:%02d, Date: %02d-%02d-%02d\r\n",
+					MyGps.hours, MyGps.minutes, MyGps.seconds, MyGps.day, MyGps.month, MyGps.year);
+			HAL_UART_Transmit(&huart2, (uint8_t*)buffx, strlen(buffx), HAL_MAX_DELAY);*/
 			GPS_GetFromRTC(&gps_to_rtc);};
-		xQueueSend(GpsToIhm, &gps_to_ihm,0);
+		//	xQueueSend(GpsToIhm, &gps_to_ihm,0);
 
-		osDelay(100);
+		osDelay(1000);
 	}
 }
 void GPS_UART_CallBack() {
@@ -64,7 +75,7 @@ void GPS_UART_CallBack() {
 		xGpsBytesSent=xMessageBufferSendFromISR(GpsMessageBufferHandle,NMEA_ToParse,strlen((char*)NMEA_ToParse),&xHigherPriorityTaskWokenGps);
 		if( xGpsBytesSent != strlen((char*)NMEA_ToParse))
 		{
-			HAL_UART_Transmit(&huart2, (const uint8_t *)"GPS Message sent different from buffer data\r\n",strlen("GPS Message sent different from buffer data\r\n"),100);
+		/*	HAL_UART_Transmit(&huart2, (const uint8_t *)"GPS Message sent different from buffer data\r\n",strlen("GPS Message sent different from buffer data\r\n"),100);*/
 		}
 		memset(rx_buffer,0,sizeof(rx_buffer));
 		rx_index = 0;
@@ -83,17 +94,29 @@ void Sentence_parse(char* str){
 void GPS_GetFromRTC(GPS_RTC *gps_rtc){
 	RTC_TimeTypeDef rtc_time;
 	RTC_DateTypeDef rtc_date;
+
 	HAL_RTC_GetTime(&hrtc, &rtc_time, RTC_FORMAT_BIN);
 	HAL_RTC_GetDate(&hrtc, &rtc_date, RTC_FORMAT_BIN);
+
+	// Calcul différence temps en minutes
 	int rtc_minutes_total = rtc_time.Hours * 60 + rtc_time.Minutes;
 	int gps_minutes_total = gps_rtc->hours * 60 + gps_rtc->minutes;
 	int diff_minutes = abs(rtc_minutes_total - gps_minutes_total);
-	if (diff_minutes >= 5)
+
+	// Vérification date
+	int rtc_date_match = (rtc_date.Date == gps_rtc->day) &&
+                         (rtc_date.Month == gps_rtc->month) &&
+                         (rtc_date.Year == gps_rtc->year);
+
+	// Synchroniser RTC si écart > 5 min ou si la date diffère
+	if (diff_minutes >= 5 || !rtc_date_match) {
 		RTC_SetFromGPS(gps_rtc);
-	/*	HAL_UART_Transmit(&huart2, (const uint8_t*)"RTC synchronized from GPS\r\n", strlen("RTC synchronized from GPS\r\n"), 1000);
-	} else {
-		HAL_UART_Transmit(&huart2, (const uint8_t*)"RTC sync skipped (diff < 5 min)\r\n", strlen("RTC sync skipped (diff < 5 min)\r\n"), 1000);
-	}*/
+		gps_rtc_updated = 1;
+	/*	HAL_UART_Transmit(&huart2,
+            (const uint8_t*)"RTC synchronized from GPS\r\n",
+			strlen("RTC synchronized from GPS\r\n"),
+			1000);*/
+	}
 }
 void RTC_SetFromGPS(GPS_RTC *gps_rtc)
 {
@@ -120,4 +143,10 @@ void RTC_SetFromGPS(GPS_RTC *gps_rtc)
 		Error_Handler();
 	}
 }
-#endif
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+	if(huart->Instance==huart1.Instance)
+	{
+		GPS_UART_CallBack();
+	}
+}
+//#endif

@@ -55,7 +55,8 @@ Core/Src/freertos.o: ../Core/Src/freertos.c \
  ../Core/Inc/usart.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/message_buffer.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/stream_buffer.h \
- ../Core/Inc/rtc.h ../Core/Inc/gps.h
+ ../Core/Inc/rtc.h ../Core/Inc/gps.h \
+ ../Middlewares/Third_Party/FreeRTOS/Source/include/portable.h
 ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h:
 ../Core/Inc/FreeRTOSConfig.h:
 ../Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h:
@@ -117,3 +118,4 @@ Core/Src/freertos.o: ../Core/Src/freertos.c \
 ../Middlewares/Third_Party/FreeRTOS/Source/include/stream_buffer.h:
 ../Core/Inc/rtc.h:
 ../Core/Inc/gps.h:
+../Middlewares/Third_Party/FreeRTOS/Source/include/portable.h:

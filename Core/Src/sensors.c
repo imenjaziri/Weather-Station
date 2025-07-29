@@ -10,25 +10,16 @@ extern osThreadId Sensors_TaskHandle;
 volatile uint32_t last_press_time = 0;
 extern volatile uint8_t debounce_active ;
 extern volatile uint8_t valid_press;
-volatile uint8_t counter = 0;
+volatile int32_t last_position = 0;
 volatile float measured_rpm = 0;
-volatile uint32_t last_capture = 0;
-const uint8_t duty_cycles[] = {2,10,50,75, 100};
-uint8_t duty_index = 0;
+uint32_t counter = 0;
 
-void FanTimerCallback(void const *arg) {
-    // 1. Appliquer le duty cycle actuel
-    uint8_t duty = duty_cycles[duty_index];
-    SetFanSpeedPercent(duty);
+int16_t count = 0;
 
-    // 2. Afficher le duty et le RPM
-    char msg[100];
-    snprintf(msg, sizeof(msg), "⏱️ Duty: %d%% | RPM: %.2f\r\n", duty, measured_rpm);
-    HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 100);
+int16_t position = 0;
 
-    // 3. Prochaine valeur
-    duty_index = (duty_index + 1) % (sizeof(duty_cycles) / sizeof(duty_cycles[0]));
-}
+int speed =0;
+
 void Start_Sensors_Task(void const * argument) {
 	/*for (uint8_t addr = 1; addr < 127; addr++) {
 		if (HAL_I2C_IsDeviceReady(&hi2c2, addr << 1, 2, 10) == HAL_OK) {
@@ -61,13 +52,17 @@ void Start_Sensors_Task(void const * argument) {
 		HAL_UART_Transmit(&huart2, (uint8_t*)"Erreur capteur SHT40\r\n", 23, 1000);
 	}
 	*/
-	  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
-
-	    // 2. Démarrer la capture TACH avec interruption
-	    HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_1);
-	    osTimerStart(FanTimerHandle, 20000);  // 30 sec
+ HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);
 
 	for (;;) {
+		 Encoder_Update_Speed();
+
+		    char msg[64];
+		  //  snprintf(msg, sizeof(msg), "RPM: %.2f\r\n", measured_rpm);
+		  //  HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 100);
+
+		    osDelay(1000);
+
 		/*if (valid_press){
 			counter++;
 			valid_press=0;
@@ -82,25 +77,11 @@ void Start_Sensors_Task(void const * argument) {
 			HAL_UART_Transmit(&huart2, (uint8_t*)buffer, strlen(buffer), 100);
 		}*/
 
-		osDelay(500);
+
 	}
 }
 
-void SetFanSpeedPercent(uint8_t percent) {
-    uint32_t pulse = (percent * (__HAL_TIM_GET_AUTORELOAD(&htim3) + 1)) / 100;
-    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, pulse);
-}
-void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
-    if (htim->Instance == TIM4) {
-        uint32_t now = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
-        uint32_t delta = (now >= last_capture) ? now - last_capture : (0xFFFF - last_capture + now);
-        last_capture = now;
 
-        if (delta > 0) {
-            measured_rpm = 60.0f * 1e6f / (delta * 2); // 2 impulsions par tour
-        }
-    }
-}
 int GetStableADCReading_Polling(SensorReadings_t *result) {
 	float last_soil = -1, last_light = -1;
 	float current_soil, current_light;
@@ -149,3 +130,32 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 
 }
 
+
+/*void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
+{
+	counter = __HAL_TIM_GET_COUNTER(&htim3);
+
+	count = (int16_t)counter;
+
+	position = count/4;
+}*/
+void Encoder_Update_Speed() {
+    int32_t current_position = (int16_t)__HAL_TIM_GET_COUNTER(&htim3);
+    int32_t delta = current_position - last_position;
+
+    // handle overflow
+    if (delta > 32768) delta -= 65536;
+    if (delta < -32768) delta += 65536;
+
+    last_position = current_position;
+
+    float CPR = 330.0f;
+
+    // ignorer les changements anormaux
+    if (abs(delta) > 3000) {
+        measured_rpm = 0;
+        return;
+    }
+
+    measured_rpm = fabs((delta / CPR) * 600.0f);  // vitesse absolue
+}
